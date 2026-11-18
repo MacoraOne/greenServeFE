@@ -1,0 +1,49 @@
+name: Build and Package greenServeFE
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build greenServeFE
+        run: |
+          make clean all
+          test -x ./greenServeFE
+          ./greenServeFE --help || true
+
+      - name: Package binary
+        run: |
+          mkdir -p dist
+          cp ./greenServeFE dist/greenServeFE
+          chmod +x dist/greenServeFE
+          zip -j dist/greenServeFE-linux-x86_64.zip dist/greenServeFE
+          sha256sum dist/greenServeFE > dist/greenServeFE.sha256
+          sha256sum dist/greenServeFE-linux-x86_64.zip > dist/greenServeFE-linux-x86_64.zip.sha256
+          ls -lh dist
+
+      - name: Publish build to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: greenServeFE-latest
+          name: greenServeFE Latest Build
+          body: |
+            Latest manually built greenServeFE Linux x86_64 binary.
+
+            Assets are replaced whenever this workflow is run successfully.
+          files: |
+            dist/greenServeFE
+            dist/greenServeFE-linux-x86_64.zip
+            dist/greenServeFE.sha256
+            dist/greenServeFE-linux-x86_64.zip.sha256
+          overwrite_files: true
+          make_latest: true
+          fail_on_unmatched_files: true
